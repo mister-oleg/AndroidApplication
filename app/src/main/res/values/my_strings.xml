@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="text_welcome">Добро пожаловать\nВведите код для входа</string>
+    <string name="text_welcome">Добро \nпожаловать\nВведите код для \nвхода</string>
+    <string name="text_field_enter">Поле ввода \nкода</string>
+    <string name="text_enter">Войти</string>
 </resources>
