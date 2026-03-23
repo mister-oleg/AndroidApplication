@@ -22,9 +22,10 @@ import com.example.electronicstudent.data.StudentRepository
 class StudentViewModel : ViewModel() {
     private val studentRepository = StudentRepository()
     var studentData by mutableStateOf(StudentData("", "", "", "", ImageBitmap(10,10)))
-
+    var avatar by mutableStateOf(ImageBitmap(10,10))
     fun getStudentData(id: String) : Boolean{
         studentData = studentRepository.getStudent(id)
+        avatar = studentData.avatar
         return studentData.code != "-1"
     }
 
@@ -35,9 +36,8 @@ class StudentViewModel : ViewModel() {
         if (Build.VERSION.SDK_INT >= 28) {
             val source = ImageDecoder.createSource(context.contentResolver, uri)
             val bitmap = ImageDecoder.decodeBitmap(source)
-            studentData.avatar = bitmap.asImageBitmap()
-            studentData.name = "dadadadadadadadada"
-            Log.i("setAvatar", studentData.avatar.toString())
+            avatar = bitmap.asImageBitmap()
+            Log.i("setAvatar", studentData.avatar.width.toString())
         }
     }
 }

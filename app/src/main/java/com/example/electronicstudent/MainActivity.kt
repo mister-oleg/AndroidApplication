@@ -195,7 +195,7 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
                     }
                 }
                 Image(bitmap = studentViewModel.studentData.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
-                Button(onClick = {navController.navigate(Route.ChangeAvatar.route + "/${studentViewModel.studentData?.code.toString()}")},
+                Button(onClick = {navController.navigate(Route.ChangeAvatar.route + "/${studentViewModel.studentData.code}")},
                     modifier = Modifier.width(120.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.button)),) {
                     Text(text = stringResource(R.string.text_change), color = Color.Black, fontSize = (3.5).em, softWrap = false)
@@ -214,7 +214,7 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
                 )
                 Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        studentViewModel.studentData?.group.toString(),
+                        studentViewModel.studentData.group,
                         Modifier
                             .clip(RoundedCornerShape(15.dp))
                             .background(colorResource(R.color.textBackground))
@@ -224,7 +224,7 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
                         lineHeight = (2.3).em
                     )
                     Text(
-                        studentViewModel.studentData?.college.toString(),
+                        studentViewModel.studentData.college,
                         Modifier
                             .clip(RoundedCornerShape(15.dp))
                             .background(colorResource(R.color.textBackground))
@@ -242,7 +242,7 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
 @Composable
 fun ScreenChangeAvatar(modifier: Modifier = Modifier, studentViewModel: StudentViewModel = StudentViewModel(), navController: NavController)
 {
-    Log.i("changeavatar", studentViewModel.studentData.avatar.toString())
+    Log.i("changeavatar", studentViewModel.avatar.width.toString())
     val context = LocalContext.current
     val singlePhotoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -250,8 +250,6 @@ fun ScreenChangeAvatar(modifier: Modifier = Modifier, studentViewModel: StudentV
 
     Box(modifier = Modifier, contentAlignment = Alignment.Center)
     {
-
-
         Image(
             painter = ColorPainter(colorResource(R.color.background)),
             contentDescription = "background"
@@ -275,7 +273,7 @@ fun ScreenChangeAvatar(modifier: Modifier = Modifier, studentViewModel: StudentV
                         Text(text = stringResource(R.string.text_back), color = Color.Black)
                     }
                 }
-                Image(bitmap = studentViewModel.studentData.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
+                Image(bitmap = studentViewModel.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
                 Box(modifier = Modifier.size(250.dp))
                 {
                     Image(painter = ColorPainter(colorResource(R.color.textBackground)), contentDescription = "Avatars", modifier = Modifier.fillMaxSize().clip(shape = RoundedCornerShape(25.dp)))
@@ -323,7 +321,7 @@ fun ScreenChangeAvatar(modifier: Modifier = Modifier, studentViewModel: StudentV
 }
 
 
-@Preview(showBackground = true)
+/*@Preview(showBackground = true)
 @Composable
 fun ScreenEnterPreview() {
     ElectronicStudentTheme {
@@ -331,7 +329,7 @@ fun ScreenEnterPreview() {
         //ScreenMain(Modifier.fillMaxSize())
         ScreenChangeAvatar(Modifier.fillMaxSize(), navController = rememberNavController())
     }
-}
+}*/
 
 sealed class Route(val route: String){
     object Enter: Route("Enter")
