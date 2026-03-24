@@ -1,7 +1,6 @@
 package com.example.electronicstudent
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -34,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -42,16 +40,22 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import coil3.compose.AsyncImage
+import com.example.electronicstudent.data.api.ApiService
+import com.example.electronicstudent.data.model.StudentData
+import com.example.electronicstudent.data.repository.StudentRepository
 import com.example.electronicstudent.ui.theme.ElectronicStudentTheme
 import com.example.electronicstudent.viewModel.CodeViewModel
-import com.example.electronicstudent.viewModel.StudentViewModel
+import com.example.electronicstudent.viewModel.LoginViewModel
+import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
     @SuppressLint("ViewModelConstructorInComposable")
@@ -62,29 +66,21 @@ class MainActivity : ComponentActivity() {
             ElectronicStudentTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val navController = rememberNavController()
-
+                    val loginViewModel = LoginViewModel(StudentRepository(ApiService()))
                     NavHost(navController = navController, startDestination = Route.Enter.route){
                         composable(Route.Enter.route){
                             ScreenEnter(
                                 modifier = Modifier.padding(innerPadding),
                                 navController = navController,
-                                codeViewModel = CodeViewModel())
+                                loginViewModel = loginViewModel)
                         }
-                        composable(Route.Main.route + "/{studentId}"){
-                            stackEntry ->
-                            val studentId = stackEntry.arguments?.getString("studentId")
-                            val studentViewModel = StudentViewModel()
-                            studentViewModel.getStudentData(studentId.toString())
+                        composable(Route.Main.route){
                             ScreenMain(
                                 modifier = Modifier.padding(innerPadding),
                                 navController = navController,
-                                studentViewModel = studentViewModel)
+                                student = loginViewModel.state.student as StudentData)
                         }
-                        composable(Route.ChangeAvatar.route + "/{studentId}"){
-                            stackEntry ->
-                            val studentId = stackEntry.arguments?.getString("studentId")
-                            val studentViewModel = StudentViewModel()
-                            studentViewModel.getStudentData(studentId.toString())
+                        composable(Route.ChangeAvatar.route){
                             ScreenChangeAvatar(
                                 modifier = Modifier.padding(innerPadding),
                                 navController = navController)
@@ -98,7 +94,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ScreenEnter(modifier: Modifier = Modifier, codeViewModel: CodeViewModel = CodeViewModel(), studentViewModel: StudentViewModel = StudentViewModel(), navController: NavController) {
+fun ScreenEnter(modifier: Modifier = Modifier, loginViewModel: LoginViewModel, navController: NavController) {
 
     Box(modifier = Modifier, contentAlignment = Alignment.Center)
     {
@@ -126,26 +122,26 @@ fun ScreenEnter(modifier: Modifier = Modifier, codeViewModel: CodeViewModel = Co
                 fontSize = 5.em,
                 textAlign = TextAlign.Center
             )
-            OutlinedTextField(value = codeViewModel.codeText, {codeViewModel.setCode(it)},
+            OutlinedTextField(value = loginViewModel.state.colleigeCode, {loginViewModel.onCollegeChanged(it)},
                 Modifier
                     .clip(RoundedCornerShape(30.dp))
                     .size(150.dp, 70.dp),
                 colors = TextFieldDefaults.colors(focusedContainerColor = colorResource(R.color.textBackground), unfocusedContainerColor = colorResource(R.color.textBackground)),
                 textStyle = TextStyle(fontSize = 4.em, textAlign = TextAlign.Center)
             )
-            /*Text(
-                stringResource(R.string.text_field_enter),
+            OutlinedTextField(value = loginViewModel.state.studentCode, {loginViewModel.onStudentChanged(it)},
                 Modifier
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(colorResource(R.color.textBackground)),
-                fontSize = 5.em,
-                textAlign = TextAlign.Center
-            )*/
+                    .clip(RoundedCornerShape(30.dp))
+                    .size(150.dp, 70.dp),
+                colors = TextFieldDefaults.colors(focusedContainerColor = colorResource(R.color.textBackground), unfocusedContainerColor = colorResource(R.color.textBackground)),
+                textStyle = TextStyle(fontSize = 4.em, textAlign = TextAlign.Center)
+            )
+
 
             Button(onClick = {
-
-                if (studentViewModel.getStudentData(codeViewModel.codeText)) {
-                    navController.navigate(Route.Main.route + "/${codeViewModel.codeText}")
+                loginViewModel.login()
+                if (loginViewModel.state.error != null) {
+                    navController.navigate(Route.Main.route)
                 }
                              },
                 colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.button), contentColor = Color.Black))
@@ -161,9 +157,8 @@ fun ScreenEnter(modifier: Modifier = Modifier, codeViewModel: CodeViewModel = Co
 }
 
 @Composable
-fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel = StudentViewModel(), navController: NavController)
+fun ScreenMain(modifier: Modifier = Modifier, student: StudentData, navController: NavController)
 {
-    Log.i("main", studentViewModel.studentData.avatar.toString())
     Box(modifier = Modifier, contentAlignment = Alignment.Center)
     {
         Image(
@@ -194,16 +189,17 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
                         Text(text = stringResource(R.string.text_notification), color = Color.Black, fontSize = (3).em)
                     }
                 }
-                Image(bitmap = studentViewModel.studentData.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
-                Button(onClick = {navController.navigate(Route.ChangeAvatar.route + "/${studentViewModel.studentData.code}")},
+                AsyncImage(model = student.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
+                //Image(bitmap = studentViewModel.studentData.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
+                /*Button(onClick = {navController.navigate(Route.ChangeAvatar.route + "/${studentViewModel.studentData.code}")},
                     modifier = Modifier.width(120.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.button)),) {
                     Text(text = stringResource(R.string.text_change), color = Color.Black, fontSize = (3.5).em, softWrap = false)
 
-                }
+                }*/
                 Image(bitmap = ImageBitmap.imageResource(R.drawable.qr_code), contentDescription = "QRCODE", modifier = Modifier.size(200.dp).background(Color.White))
                 Text(
-                    studentViewModel.studentData.name,
+                    student.name,
                     Modifier
                         .clip(RoundedCornerShape(15.dp))
                         .background(colorResource(R.color.textBackground))
@@ -214,7 +210,7 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
                 )
                 Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        studentViewModel.studentData.group,
+                        student.group,
                         Modifier
                             .clip(RoundedCornerShape(15.dp))
                             .background(colorResource(R.color.textBackground))
@@ -224,7 +220,7 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
                         lineHeight = (2.3).em
                     )
                     Text(
-                        studentViewModel.studentData.college,
+                        student.college,
                         Modifier
                             .clip(RoundedCornerShape(15.dp))
                             .background(colorResource(R.color.textBackground))
@@ -240,13 +236,12 @@ fun ScreenMain(modifier: Modifier = Modifier, studentViewModel: StudentViewModel
 }
 
 @Composable
-fun ScreenChangeAvatar(modifier: Modifier = Modifier, studentViewModel: StudentViewModel = StudentViewModel(), navController: NavController)
+fun ScreenChangeAvatar(modifier: Modifier = Modifier, navController: NavController)
 {
-    Log.i("changeavatar", studentViewModel.avatar.width.toString())
     val context = LocalContext.current
     val singlePhotoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = {studentViewModel.setAvatar(context, it)})
+        onResult = {})
 
     Box(modifier = Modifier, contentAlignment = Alignment.Center)
     {
@@ -273,7 +268,7 @@ fun ScreenChangeAvatar(modifier: Modifier = Modifier, studentViewModel: StudentV
                         Text(text = stringResource(R.string.text_back), color = Color.Black)
                     }
                 }
-                Image(bitmap = studentViewModel.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
+                Image(bitmap = ImageBitmap(10,10), contentDescription = "Avatar", modifier = Modifier.size(120.dp))
                 Box(modifier = Modifier.size(250.dp))
                 {
                     Image(painter = ColorPainter(colorResource(R.color.textBackground)), contentDescription = "Avatars", modifier = Modifier.fillMaxSize().clip(shape = RoundedCornerShape(25.dp)))
