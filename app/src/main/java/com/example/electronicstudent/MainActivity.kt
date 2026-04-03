@@ -28,11 +28,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
@@ -50,11 +52,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil3.compose.AsyncImage
 import com.example.electronicstudent.data.api.ApiService
+import com.example.electronicstudent.data.model.QrPayload
 import com.example.electronicstudent.data.model.StudentData
 import com.example.electronicstudent.data.repository.StudentRepository
 import com.example.electronicstudent.ui.theme.ElectronicStudentTheme
 import com.example.electronicstudent.viewModel.CodeViewModel
 import com.example.electronicstudent.viewModel.LoginViewModel
+import com.example.electronicstudent.viewModel.utils.QrCodeGenurator
+import kotlinx.serialization.json.Json
 import kotlin.math.log
 
 class MainActivity : ComponentActivity() {
@@ -95,65 +100,73 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ScreenEnter(modifier: Modifier = Modifier, loginViewModel: LoginViewModel, navController: NavController) {
+    LaunchedEffect(loginViewModel.state.student) {
+        if (loginViewModel.state.student != null) {
+            navController.navigate(Route.Main.route)
+        }
+    }
 
     Box(modifier = Modifier, contentAlignment = Alignment.Center)
     {
-    Image(
-        painter = ColorPainter(colorResource(R.color.background)),
-        contentDescription = "background"
-    )
-    Box(modifier = Modifier.padding(20.dp, 40.dp)) {
         Image(
-        painter = ColorPainter(colorResource(R.color.background2)),
-        contentDescription = "background",
-        modifier = Modifier
-            .clip(RoundedCornerShape(30.dp))
-    )
-        Column(verticalArrangement = Arrangement.SpaceAround,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxSize(),
+            painter = ColorPainter(colorResource(R.color.background)),
+            contentDescription = "background"
         )
-        {
-            Text(
-                stringResource(R.string.text_welcome),
-                Modifier
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(colorResource(R.color.textBackground)),
-                fontSize = 5.em,
-                textAlign = TextAlign.Center
-            )
-            OutlinedTextField(value = loginViewModel.state.colleigeCode, {loginViewModel.onCollegeChanged(it)},
-                Modifier
+        Box(modifier = Modifier.padding(20.dp, 40.dp)) {
+            Image(
+                painter = ColorPainter(colorResource(R.color.background2)),
+                contentDescription = "background",
+                modifier = Modifier
                     .clip(RoundedCornerShape(30.dp))
-                    .size(150.dp, 70.dp),
-                colors = TextFieldDefaults.colors(focusedContainerColor = colorResource(R.color.textBackground), unfocusedContainerColor = colorResource(R.color.textBackground)),
-                textStyle = TextStyle(fontSize = 4.em, textAlign = TextAlign.Center)
             )
-            OutlinedTextField(value = loginViewModel.state.studentCode, {loginViewModel.onStudentChanged(it)},
-                Modifier
-                    .clip(RoundedCornerShape(30.dp))
-                    .size(150.dp, 70.dp),
-                colors = TextFieldDefaults.colors(focusedContainerColor = colorResource(R.color.textBackground), unfocusedContainerColor = colorResource(R.color.textBackground)),
-                textStyle = TextStyle(fontSize = 4.em, textAlign = TextAlign.Center)
+            Column(verticalArrangement = Arrangement.SpaceAround,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxSize(),
             )
-
-
-            Button(onClick = {
-                loginViewModel.login()
-                if (loginViewModel.state.error != null) {
-                    navController.navigate(Route.Main.route)
-                }
-                             },
-                colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.button), contentColor = Color.Black))
             {
-                Text(text = stringResource(R.string.text_enter),
-                    fontSize = 5.em
+                Text(
+                    stringResource(R.string.text_welcome),
+                    Modifier
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(colorResource(R.color.textBackground)),
+                    fontSize = 5.em,
+                    textAlign = TextAlign.Center
+                )
+                OutlinedTextField(value = loginViewModel.state.colleigeCode, {loginViewModel.onCollegeChanged(it)},
+                    Modifier
+                        .clip(RoundedCornerShape(30.dp))
+                        .size(150.dp, 70.dp),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = colorResource(R.color.textBackground), unfocusedContainerColor = colorResource(R.color.textBackground)),
+                    textStyle = TextStyle(fontSize = 4.em, textAlign = TextAlign.Center)
+                )
+                OutlinedTextField(value = loginViewModel.state.studentCode, {loginViewModel.onStudentChanged(it)},
+                    Modifier
+                        .clip(RoundedCornerShape(30.dp))
+                        .size(150.dp, 70.dp),
+                    colors = TextFieldDefaults.colors(focusedContainerColor = colorResource(R.color.textBackground), unfocusedContainerColor = colorResource(R.color.textBackground)),
+                    textStyle = TextStyle(fontSize = 4.em, textAlign = TextAlign.Center)
+                )
+
+                //кнопка входа
+                Button(onClick = { loginViewModel.login() },
+                    enabled = !loginViewModel.state.isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.button), contentColor = Color.Black))
+                {
+                    Text(text = if (loginViewModel.state.isLoading) "..." else stringResource(R.string.text_enter),
+                        fontSize = 5.em
                     )
 
+                }
+                loginViewModel.state.error?.let { error ->
+                    Text(
+                        text = error,
+                        color = Color.Red,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
-        }
-     }
+    }
 }
 
 @Composable
@@ -189,6 +202,8 @@ fun ScreenMain(modifier: Modifier = Modifier, student: StudentData, navControlle
                         Text(text = stringResource(R.string.text_notification), color = Color.Black, fontSize = (3).em)
                     }
                 }
+                Log.i("main", student.avatar)
+
                 AsyncImage(model = student.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
                 //Image(bitmap = studentViewModel.studentData.avatar, contentDescription = "Avatar", modifier = Modifier.size(120.dp))
                 /*Button(onClick = {navController.navigate(Route.ChangeAvatar.route + "/${studentViewModel.studentData.code}")},
@@ -197,7 +212,9 @@ fun ScreenMain(modifier: Modifier = Modifier, student: StudentData, navControlle
                     Text(text = stringResource(R.string.text_change), color = Color.Black, fontSize = (3.5).em, softWrap = false)
 
                 }*/
-                Image(bitmap = ImageBitmap.imageResource(R.drawable.qr_code), contentDescription = "QRCODE", modifier = Modifier.size(200.dp).background(Color.White))
+
+                val json = Json.encodeToString(QrPayload(student.college, student.group))
+                Image(bitmap = QrCodeGenurator().generateQrBitmap(json).asImageBitmap(), contentDescription = "QRCODE", modifier = Modifier.size(200.dp).background(Color.White))
                 Text(
                     student.name,
                     Modifier
@@ -274,22 +291,22 @@ fun ScreenChangeAvatar(modifier: Modifier = Modifier, navController: NavControll
                     Image(painter = ColorPainter(colorResource(R.color.textBackground)), contentDescription = "Avatars", modifier = Modifier.fillMaxSize().clip(shape = RoundedCornerShape(25.dp)))
 
                     Image(
-                        bitmap = ImageBitmap.imageResource(R.drawable.avatar),
+                        bitmap = ImageBitmap.imageResource(R.drawable.qr_2_svg),
                         contentDescription = "Avatar",
                         modifier = Modifier.size(120.dp).align(Alignment.BottomEnd).padding(10.dp)
                     )
                     Image(
-                        bitmap = ImageBitmap.imageResource(R.drawable.avatar),
+                        bitmap = ImageBitmap.imageResource(R.drawable.qr_2_svg),
                         contentDescription = "Avatar",
                         modifier = Modifier.size(120.dp).align(Alignment.BottomStart).padding(10.dp)
                     )
                     Image(
-                        bitmap = ImageBitmap.imageResource(R.drawable.avatar),
+                        bitmap = ImageBitmap.imageResource(R.drawable.qr_2_svg),
                         contentDescription = "Avatar",
                         modifier = Modifier.size(120.dp).align(Alignment.TopEnd).padding(10.dp)
                     )
                     Image(
-                        bitmap = ImageBitmap.imageResource(R.drawable.avatar),
+                        bitmap = ImageBitmap.imageResource(R.drawable.qr_2_svg),
                         contentDescription = "Avatar",
                         modifier = Modifier.size(120.dp).align(Alignment.TopStart).padding(10.dp)
                     )

@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">ElectronicStudent</string>
+    <string name="text_welcome">Добро \nпожаловать\nВведите код для \nвхода</string>
+    <string name="text_field_enter">Поле ввода \nкода</string>
+    <string name="text_enter">Войти</string>
+    <string name="text_exit">Выйти</string>
+    <string name="text_notification">Уведомление</string>
+    <string name="text_change">Изменить</string>
+    <string name="text_name_user">ФИО</string>
+    <string name="text_group">Группа</string>
+    <string name="text_college">Колледж</string>
+    <string name="text_back">Назад</string>
+    <string name="text_load_from_phone">Загрузить с телефона</string>
+    <string name="text_confirm">Потвердить</string>
 </resources>

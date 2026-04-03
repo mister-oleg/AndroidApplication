@@ -36,7 +36,11 @@ class LoginViewModel(private var repository: StudentRepository) : ViewModel() {
                 state = state.copy(isLoading = false, student = student)
             }
             catch (e: Exception) {
-                state = state.copy(isLoading = false, error = "Ошибка входа")
+                Log.e("LoginViewModel", "Login request failed", e)
+                state = state.copy(
+                    isLoading = false,
+                    error = e.localizedMessage ?: "Ошибка входа"
+                )
             }
         }
     }
